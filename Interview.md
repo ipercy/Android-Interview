@@ -116,6 +116,24 @@ SparseArray键中始终是原始类型，旨在消除自动装箱的问题，而
 
 
 
+## ArrayList和LinkedList区别
+
+1. ArrayList是实现了基于可改变大小数组的数据结构，LinkedList基于双向链表的数据结构。 
+2. 对于随机访问get和set，ArrayList绝对优于LinkedList，因为LinkedList要移动指针。
+3. 对于新增和删除操作add和remove，LinkedList比较占优势，因为ArrayList要移动数据。
+
+
+
+## CopyOnWriteArrayList
+
+遍历List的同时操作List，比如说删除其中的元素会抛出`java.util.ConcurrentModificationException`
+
+ArrayList是非线程安全的，Vector是线程安全的，即使把ArrayList换成Vector还是不可以线程安全地遍历，因为从Vector源码可以发现它的很多方法都加上了synchronized来进行线程同步，例如add()、remove()、set()、get()，但是Vector内部的synchronized方法无法控制到遍历操作，所以即使是线程安全的Vector也无法做到线程安全地遍历。
+
+CopyOnWriteArrayList类最大的特点就是，在对其实例进行修改操作（add/remove等）会拷贝一份新的List并且在新的List上进行修改，最后将原List的引用指向新的List。这样也就没有了ConcurrentModificationException错误。
+
+
+
 ## ThreadLocal工作原理
 
 ThreadLocal提供了线程本地变量，它可以保证访问到的变量属于当前线程，每个线程都保存有一个变量副本，每个线程的变量都不同。ThreadLocal相当于提供了一种线程隔离，将变量与线程相绑定。
@@ -297,6 +315,18 @@ Sample 类的局部变量 s2 和引用变量 mSample2 都是存在于栈中，�
 
 
 
+
+可作为GC Roots的对象有：
+
+1. 虚拟机栈（栈帧中的本地变量表）中引用的对象；
+
+2. 方法区中的类静态属性引用的对象；
+
+3. 方法区中常量引用的对象；
+
+4. 本地方法栈中JNI（即一般说的Native方法）中引用的对象
+
+   ​
 
 ## Java垃圾回收算法
 
@@ -496,24 +526,6 @@ Serializable是Java中的序列化接口，其使用起来简单但是开销很�
 
 
 
-## Synchronized与Lock锁的区别        
-
-- Synchronized：在资源竞争不是很激烈的情况下，偶尔会有同步的情形下，synchronized是很合适的。原因在于，编译程序通常会尽可能的进行优化synchronized，另外可读性非常好，不管用没用过5.0多线程包的程序员都能理解。 
-- ReentrantLock:**ReentrantLock提供了多样化的同步**，比如有时间限制的同步，可以被Interrupt的同步（synchronized的同步是不能Interrupt的）等。在资源竞争不激烈的情形下，性能稍微比synchronized差一点。但是当同步非常激烈的时候，synchronized的性能一下子能下降好几十倍。而ReentrantLock却还能维持常态。
-
-
-
-
-## Volatile
-
-被volatile修饰的共享变量，就具有了以下两点特性：
-
-1 . 保证了不同线程对该变量操作的内存可见性;
-
-2 . 禁止指令重排序
-
-
-
 ## StringBuffer与StringBuilder的区别
 
 - String 字符串常量
@@ -527,6 +539,14 @@ Serializable是Java中的序列化接口，其使用起来简单但是开销很�
 （1）基本原则：如果要操作少量的数据，用String ；单线程操作大量数据，用StringBuilder ；多线程操作大量数据，用StringBuffer。
 
 （2）不要使用String类的"+"来进行**频繁的拼接**，因为那样的性能极差的，应该使用StringBuffer或StringBuilder类，这在Java的优化上是一条比较重要的原则。
+
+
+
+## Synchronized与Lock锁的区别        
+
+- Synchronized：在资源竞争不是很激烈的情况下，偶尔会有同步的情形下，synchronized是很合适的。原因在于，编译程序通常会尽可能的进行优化synchronized，另外可读性非常好，不管用没用过5.0多线程包的程序员都能理解。 
+- ReentrantLock:**ReentrantLock提供了多样化的同步**，比如有时间限制的同步，可以被Interrupt的同步（synchronized的同步是不能Interrupt的）等。在资源竞争不激烈的情形下，性能稍微比synchronized差一点。但是当同步非常激烈的时候，synchronized的性能一下子能下降好几十倍。而ReentrantLock却还能维持常态。
+
 
 
 
@@ -544,9 +564,79 @@ Serializable是Java中的序列化接口，其使用起来简单但是开销很�
 
 
 
-## OKhttp处理缓存
+## Java线程池
 
-OkHttp默认对Http缓存进行了支持，只要服务端返回的Response中含有缓存策略，OkHttp就会通过CacheInterceptor拦截器对其进行缓存。但是OkHttp默认情况下构造的HTTP请求中并没有加Cache-Control，即便服务器支持了，我们还是不能正常使用缓存数据。所以需要对OkHttp的缓存过程进行干预，使其满足我们的需求。
+Java通过Executors提供四种线程池，Executors 提供了一系列工厂方法用于创建线程池，返回的线程池都实现了 ExecutorService 接口，分别为：
+
+- `newCachedThreadPool` 创建一个可缓存线程池，如果线程池长度超过处理需要，可灵活回收空闲线程，若无可回收，则新建线程。
+- `newFixedThreadPool` 创建一个定长线程池，可控制线程最大并发数，超出的线程会在队列中等待。
+- `newScheduledThreadPool` 创建一个定长线程池，支持定时及周期性任务执行。
+- `newSingleThreadExecutor` 创建一个单线程化的线程池，它只会用唯一的工作线程来执行任务，保证所有任务按照指定顺序(FIFO, LIFO, 优先级)执行。
+
+自定义线程池，可以用`ThreadPoolExecutor `类创建，它有多个构造方法来创建线程池，用该类很容易实现自定义的线程池
+
+```java
+public ThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler handler)
+```
+
+1. `corePoolSize` 核心线程数大小，当线程数 < corePoolSize ，会创建线程执行 runnable
+2. `maximumPoolSize` 最大线程数， 当线程数 >= corePoolSize的时候，会把 runnable 放入 workQueue中
+3. `keepAliveTime`  保持存活时间，当线程数大于corePoolSize的空闲线程能保持的最大时间。
+4. `unit` 时间单位
+5. `workQueue` 保存任务的阻塞队列
+6. `threadFactory` 创建线程的工厂
+7. `handler` 拒绝策略
+
+
+
+**任务执行顺序**
+
+1、当线程数小于 `corePoolSize`时，创建线程执行任务。
+
+2、当线程数大于等于 `corePoolSize`并且 `workQueue` 没有满时，放入`workQueue`中
+
+3、线程数大于等于 `corePoolSize`并且当 `workQueue` 满时，新任务新建线程运行，线程总数要小于 `maximumPoolSize`
+
+4、当线程总数等于 `maximumPoolSize` 并且 `workQueue` 满了的时候执行 `handler` 的 `rejectedExecution`。也就是拒绝策略。
+
+**四个拒绝策略**
+
+ThreadPoolExecutor默认有四个拒绝策略：
+
+1、`ThreadPoolExecutor.AbortPolicy()`   直接抛出异常`RejectedExecutionException`
+
+2、`ThreadPoolExecutor.CallerRunsPolicy()`    直接调用run方法并且阻塞执行
+
+3、`ThreadPoolExecutor.DiscardPolicy()`   直接丢弃后来的任务
+
+4、`ThreadPoolExecutor.DiscardOldestPolicy()`  丢弃在队列中队首的任务
+
+当然可以自己继承RejectedExecutionHandler来写拒绝策略
+
+
+
+## Java注解
+
+注解分为三类：
+
+- 标准 Annotation：包括 Override, Deprecated, SuppressWarnings，是java自带的几个注解，他们由编译器来识别，不会进行编译，不影响代码运行。
+
+- 元 Annotation：`@Retention`, `@Target`, `@Inherited`, `@Documented`，它们是用来定义 Annotation 的 Annotation。也就是当我们要自定义注解时，需要使用它们。
+
+  > @Target用来表示这个注解可以使用在哪些地方。比如：类、方法、属性、接口等等。这里ElementType.TYPE 表示这个注解可以用来修饰：Class, interface or enum declaration。
+
+- 自定义 Annotation：根据需要，自定义的Annotation。
+
+
+
+- @Retention(RetentionPolicy.SOURCE)：该注解仅用于在源码阶段时处理，但在编译成class文件或运行中以后，APT就没有办法对他进行处理了。
+- @Retention(RetentionPolicy.CLASS)：该注解用于源码、类文件阶段。就是我们编写java文件和编译后产生的class文件。
+- @Retention(RetentionPolicy.RUNTIME)：该注解用于源码、类文件和运行时阶段。
+
+
+
+- 运行时注解：在代码中通过注解进行标记，运行时通过**反射**寻找标记进行某种处理，因此会影响性能。
+- 编译时注解：可以理解成**代码生成**。在编译时对注解做处理，通过注解，获取必要信息，在项目中生成代码，运行时调用，和直接运行手写代码没有任何区别。而更准确的叫法：**APT - Annotation Processing Tool**
 
 
 
@@ -562,34 +652,9 @@ OkHttp默认对Http缓存进行了支持，只要服务端返回的Response中�
 
 
 
-## 约瑟夫环
+## OKhttp处理缓存
 
-问题描述：n个人（编号1~n)，从1开始报数，报到m的退出，剩下的人继续从1开始报数。求胜利者的编号。
-
-解法一：建立一个有N个元素的循环链表，然后从链表头开始遍历并记数，如果计数i==m(i初始为1)踢出元素，继续循环，当当前元素与下一元素相同时退出循环
-
-解法二：转换为数学问题
-
-递推公式
-
-```
-f[1]=0;
-
-f[i]=(f[i-1]+m)%i;  (i>1)
-```
-
-```Java
-public static int lastRemaining(int n, int m){
-    if(n < 1 || m < 1){
-        return -1;
-    }
-    int last = 0;
-    for(int i = 2; i <= n; i++){
-        last = (last + m) % i;
-    }
-    return last;
-}
-```
+OkHttp默认对Http缓存进行了支持，只要服务端返回的Response中含有缓存策略，OkHttp就会通过CacheInterceptor拦截器对其进行缓存。但是OkHttp默认情况下构造的HTTP请求中并没有加Cache-Control，即便服务器支持了，我们还是不能正常使用缓存数据。所以需要对OkHttp的缓存过程进行干预，使其满足我们的需求。
 
 
 
@@ -697,85 +762,34 @@ Dex拆分步骤分为：
 
 
 
-## Java线程池
+## 约瑟夫环
 
-Java通过Executors提供四种线程池，Executors 提供了一系列工厂方法用于创建线程池，返回的线程池都实现了 ExecutorService 接口，分别为：
+问题描述：n个人（编号1~n)，从1开始报数，报到m的退出，剩下的人继续从1开始报数。求胜利者的编号。
 
-- `newCachedThreadPool` 创建一个可缓存线程池，如果线程池长度超过处理需要，可灵活回收空闲线程，若无可回收，则新建线程。
-- `newFixedThreadPool` 创建一个定长线程池，可控制线程最大并发数，超出的线程会在队列中等待。
-- `newScheduledThreadPool` 创建一个定长线程池，支持定时及周期性任务执行。
-- `newSingleThreadExecutor` 创建一个单线程化的线程池，它只会用唯一的工作线程来执行任务，保证所有任务按照指定顺序(FIFO, LIFO, 优先级)执行。
+解法一：建立一个有N个元素的循环链表，然后从链表头开始遍历并记数，如果计数i==m(i初始为1)踢出元素，继续循环，当当前元素与下一元素相同时退出循环
 
+解法二：转换为数学问题
 
-自定义线程池，可以用`ThreadPoolExecutor `类创建，它有多个构造方法来创建线程池，用该类很容易实现自定义的线程池
+递推公式
 
-```java
-public ThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler handler)
+```
+f[1]=0;
+
+f[i]=(f[i-1]+m)%i;  (i>1)
 ```
 
-1. `corePoolSize` 核心线程数大小，当线程数 < corePoolSize ，会创建线程执行 runnable
-2. `maximumPoolSize` 最大线程数， 当线程数 >= corePoolSize的时候，会把 runnable 放入 workQueue中
-3. `keepAliveTime`  保持存活时间，当线程数大于corePoolSize的空闲线程能保持的最大时间。
-4. `unit` 时间单位
-5. `workQueue` 保存任务的阻塞队列
-6. `threadFactory` 创建线程的工厂
-7. `handler` 拒绝策略
-
-
-
-
-**任务执行顺序**
-
-1、当线程数小于 `corePoolSize`时，创建线程执行任务。
-
-2、当线程数大于等于 `corePoolSize`并且 `workQueue` 没有满时，放入`workQueue`中
-
-3、线程数大于等于 `corePoolSize`并且当 `workQueue` 满时，新任务新建线程运行，线程总数要小于 `maximumPoolSize`
-
-4、当线程总数等于 `maximumPoolSize` 并且 `workQueue` 满了的时候执行 `handler` 的 `rejectedExecution`。也就是拒绝策略。
-
-**四个拒绝策略**
-
-ThreadPoolExecutor默认有四个拒绝策略：
-
-1、`ThreadPoolExecutor.AbortPolicy()`   直接抛出异常`RejectedExecutionException`
-
-2、`ThreadPoolExecutor.CallerRunsPolicy()`    直接调用run方法并且阻塞执行
-
-3、`ThreadPoolExecutor.DiscardPolicy()`   直接丢弃后来的任务
-
-4、`ThreadPoolExecutor.DiscardOldestPolicy()`  丢弃在队列中队首的任务
-
-当然可以自己继承RejectedExecutionHandler来写拒绝策略
-
-
-
-## Java注解
-
-注解分为三类：
-
-- 标准 Annotation：包括 Override, Deprecated, SuppressWarnings，是java自带的几个注解，他们由编译器来识别，不会进行编译，不影响代码运行。
-
-- 元 Annotation：`@Retention`, `@Target`, `@Inherited`, `@Documented`，它们是用来定义 Annotation 的 Annotation。也就是当我们要自定义注解时，需要使用它们。
-
-    > @Target用来表示这个注解可以使用在哪些地方。比如：类、方法、属性、接口等等。这里ElementType.TYPE 表示这个注解可以用来修饰：Class, interface or enum declaration。
-
-- 自定义 Annotation：根据需要，自定义的Annotation。
-
-
-
-
-
-- @Retention(RetentionPolicy.SOURCE)：该注解仅用于在源码阶段时处理，但在编译成class文件或运行中以后，APT就没有办法对他进行处理了。
-- @Retention(RetentionPolicy.CLASS)：该注解用于源码、类文件阶段。就是我们编写java文件和编译后产生的class文件。
-- @Retention(RetentionPolicy.RUNTIME)：该注解用于源码、类文件和运行时阶段。
-
-
-
-
-- 运行时注解：在代码中通过注解进行标记，运行时通过**反射**寻找标记进行某种处理，因此会影响性能。
-- 编译时注解：可以理解成**代码生成**。在编译时对注解做处理，通过注解，获取必要信息，在项目中生成代码，运行时调用，和直接运行手写代码没有任何区别。而更准确的叫法：**APT - Annotation Processing Tool**
-
+```java
+public static int lastRemaining(int n, int m){
+    if(n < 1 || m < 1){
+        return -1;
+    }
+    int last = 0;
+    for(int i = 2; i <= n; i++){
+        last = (last + m) % i;
+    }
+    return last;
+}
+```
 
 
 
@@ -823,30 +837,12 @@ private volatile static Singleton sInstance = null;
 
 
 
-## ArrayList和LinkedList区别
+## Volatile
 
-1. ArrayList是实现了基于可改变大小数组的数据结构，LinkedList基于双向链表的数据结构。 
-2. 对于随机访问get和set，ArrayList绝对优于LinkedList，因为LinkedList要移动指针。
-3. 对于新增和删除操作add和remove，LinkedList比较占优势，因为ArrayList要移动数据。
+被volatile修饰的共享变量，就具有了以下两点特性：
 
+1 . 保证了不同线程对该变量操作的内存可见性;
 
+2 . 禁止指令重排序
 
-
-## CopyOnWriteArrayList
-
-遍历List的同时操作List，比如说删除其中的元素会抛出`java.util.ConcurrentModificationException`
-
-ArrayList是非线程安全的，Vector是线程安全的，即使把ArrayList换成Vector还是不可以线程安全地遍历，因为从Vector源码可以发现它的很多方法都加上了synchronized来进行线程同步，例如add()、remove()、set()、get()，但是Vector内部的synchronized方法无法控制到遍历操作，所以即使是线程安全的Vector也无法做到线程安全地遍历。
-
-CopyOnWriteArrayList类最大的特点就是，在对其实例进行修改操作（add/remove等）会拷贝一份新的List并且在新的List上进行修改，最后将原List的引用指向新的List。这样也就没有了ConcurrentModificationException错误。
-
-
-
-## GC Roots
-
-可作为GC Roots的对象有：
-
-1. 虚拟机栈（栈帧中的本地变量表）中引用的对象；
-2. 方法区中的类静态属性引用的对象；
-3. 方法区中常量引用的对象；
-4. 本地方法栈中JNI（即一般说的Native方法）中引用的对象
+更多细节如JMM可参考[这篇文章](https://juejin.im/post/5a2b53b7f265da432a7b821c)
